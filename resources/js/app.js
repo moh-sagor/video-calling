@@ -1,6 +1,7 @@
 import './bootstrap';
 import './webrtc';
 import './meeting';
+import './chat';
 
 import Alpine from 'alpinejs';
 

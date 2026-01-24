@@ -1,3 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #8b5cf6;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    @apply bg-gray-50 text-gray-800 antialiased;
+}
+
+@layer utilities {
+    .text-gradient {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600;
+    }
+    
+    .bg-gradient-primary {
+        @apply bg-gradient-to-r from-indigo-600 to-violet-600;
+    }
+
+    .card-hover {
+        @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+    }
+
+    .input-modern {
+        @apply w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:border-indigo-500 focus:bg-white focus:ring-0 transition-all duration-200;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-lg shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+    }
+
+    .glass-nav {
+        @apply bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50;
+    }
+}

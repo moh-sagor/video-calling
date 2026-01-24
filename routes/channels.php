@@ -17,14 +17,20 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+// Presence channel for online users
+Broadcast::channel('online', function ($user) {
+    if (auth()->check()) {
+        return $user->toArray();
+    }
+});
+
+// Private channel for user notifications
 Broadcast::channel('user.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-Broadcast::channel('meeting.{code}', function ($user, $code) {
-    // Logic to check if user can join meeting (e.g. check db)
-    // For now, allow anyone authenticated
-    if (Auth::check()) {
-        return ['id' => $user->id, 'name' => $user->name];
-    }
+// Private channel for group chat
+Broadcast::channel('group.{id}', function ($user, $id) {
+    // Check if user is member of the group
+    return \App\Models\Group::find($id)->members->contains('id', $user->id);
 });
