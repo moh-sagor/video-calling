@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bc20a73eb09dd8323d65730a18b2d047",
+    "content-hash": "37412aadcc49add4d1d5a908009c0516",
     "packages": [
         {
             "name": "beyondcode/laravel-websockets",
@@ -4216,6 +4216,67 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "sagor/github-updater",
+            "version": "v1.0.8",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/moh-sagor/github-updater.git",
+                "reference": "8ee8b02352ea72a0af40a8d3d67f9a4dffb28d11"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/moh-sagor/github-updater/zipball/8ee8b02352ea72a0af40a8d3d67f9a4dffb28d11",
+                "reference": "8ee8b02352ea72a0af40a8d3d67f9a4dffb28d11",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/support": "^5.5|^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0",
+                "php": "^7.2 || ^8.0",
+                "symfony/process": "~3.4 || ^4.4 || ^5.0 || ^6.0 || ^7.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^3.5|^4.0|^5.0|^6.0|^7.0|^8.0|^9.0",
+                "phpunit/phpunit": "^8.5 || ^9.0 || ^10.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Sagor\\GithubUpdater\\Providers\\GithubUpdaterServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Sagor\\GithubUpdater\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Md Sagor Hossain",
+                    "email": "sagorhassain4@gmail.com"
+                }
+            ],
+            "description": "A Laravel package for automated Github pulls and Artisan commands by moh-sagor.",
+            "homepage": "https://github.com/moh-sagor/github-updater",
+            "keywords": [
+                "artisan",
+                "git",
+                "github",
+                "laravel",
+                "updater"
+            ],
+            "support": {
+                "issues": "https://github.com/moh-sagor/github-updater/issues",
+                "source": "https://github.com/moh-sagor/github-updater/tree/v1.0.8"
+            },
+            "time": "2025-05-18T16:33:34+00:00"
         },
         {
             "name": "symfony/console",
