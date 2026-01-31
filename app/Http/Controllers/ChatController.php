@@ -81,10 +81,46 @@ class ChatController extends Controller
             return response()->json([]);
         }
 
-        return response()->json($query->oldest()->get());
+        $messages = $query->oldest()->get();
+
+        // Mark fetched messages as read
+        if ($request->has('user_id')) {
+            Message::where('sender_id', $request->user_id)
+                ->where('receiver_id', Auth::id())
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+        }
+
+        return response()->json($messages);
     }
     
     public function fetchGroups() {
         return response()->json(Auth::user()->groups()->get());
+    }
+
+    public function markAsRead(Request $request)
+    {
+        $request->validate([
+            'sender_id' => 'required|exists:users,id'
+        ]);
+
+        Message::where('sender_id', $request->sender_id)
+            ->where('receiver_id', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['status' => 'success']);
+    }
+
+    public function fetchUnreadCounts()
+    {
+        $counts = Message::selectRaw('sender_id, count(*) as count')
+            ->where('receiver_id', Auth::id())
+            ->whereNull('read_at')
+            ->groupBy('sender_id')
+            ->get()
+            ->pluck('count', 'sender_id');
+
+        return response()->json($counts);
     }
 }

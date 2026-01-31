@@ -25,4 +25,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/groups', [ChatController::class, 'createGroup']);
     Route::get('/groups', [ChatController::class, 'fetchGroups']);
     Route::post('/users/search', [\App\Http\Controllers\SearchController::class, 'searchByEmail']);
+    Route::post('/messages/mark-read', [ChatController::class, 'markAsRead']);
+    Route::get('/messages/unread-counts', [ChatController::class, 'fetchUnreadCounts']);
 });

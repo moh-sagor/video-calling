@@ -6,19 +6,30 @@
 document.addEventListener('DOMContentLoaded', function () {
     const userIdMeta = document.querySelector('meta[name="user-id"]');
     const authUserId = userIdMeta ? parseInt(userIdMeta.content) : null;
-    
+
     if (!authUserId) return;
 
     // --- Online Status ---
     const onlineUsersList = document.getElementById('onlineUsersList'); // You'll need to add this ID to your blade
-    
+    let unreadCounts = {};
+
+    // Fetch initial unread counts
+    axios.get('/api/messages/unread-counts')
+        .then(response => {
+            unreadCounts = response.data;
+            // Apply immediately in case users are already loaded
+            Object.keys(unreadCounts).forEach(userId => {
+                updateUnreadBadge(userId, unreadCounts[userId]);
+            });
+        });
+
     // Debug Connection
     Echo.connector.pusher.connection.bind('connected', () => {
         console.log('✅ Connected to WebSocket server');
     });
     Echo.connector.pusher.connection.bind('error', (err) => {
         console.error('❌ WebSocket Error:', err);
-        if(onlineUsersList) onlineUsersList.innerHTML = `<div class="text-center py-4 text-xs text-red-400">Connection Error. Retrying...</div>`;
+        if (onlineUsersList) onlineUsersList.innerHTML = `<div class="text-center py-4 text-xs text-red-400">Connection Error. Retrying...</div>`;
     });
 
     const presenceChannel = Echo.join('online');
@@ -44,16 +55,41 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!onlineUsersList) return;
         onlineUsersList.innerHTML = '';
         let othersCount = 0;
-        
+
         users.forEach(user => {
             if (user.id !== authUserId) {
                 onlineUsersList.innerHTML += renderUserListItem(user);
                 othersCount++;
             }
         });
-        
+
         if (othersCount === 0) {
             onlineUsersList.innerHTML = `<div class="text-center py-8 text-sm text-gray-400">No other users online.</div>`;
+        }
+
+        // Apply unread counts after rendering (or re-rendering)
+        Object.keys(unreadCounts).forEach(userId => {
+            updateUnreadBadge(userId, unreadCounts[userId]);
+        });
+    }
+
+    function updateUnreadBadge(userId, count) {
+        let badge = document.getElementById(`unread-badge-${userId}`);
+        const userEl = document.getElementById(`user-online-${userId}`);
+
+        if (!userEl) return; // User might be offline
+
+        // Remove existing badge if it exists to rebuild or remove
+        if (badge) badge.remove();
+
+        if (count > 0) {
+            badge = document.createElement('span');
+            badge.id = `unread-badge-${userId}`;
+            badge.className = 'bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-auto';
+            badge.innerText = count;
+
+            // Append to the flex container inside user element
+            userEl.querySelector('.flex.items-center.space-x-3').appendChild(badge);
         }
     }
 
@@ -62,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Check if already exists to avoid duplicates
         if (!document.getElementById(`user-online-${user.id}`)) {
             // Remove empty state message if exists
-            if(onlineUsersList.innerHTML.includes('No other users online')) {
+            if (onlineUsersList.innerHTML.includes('No other users online')) {
                 onlineUsersList.innerHTML = '';
             }
             onlineUsersList.innerHTML += renderUserListItem(user);
@@ -72,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function removeOnlineUser(user) {
         const el = document.getElementById(`user-online-${user.id}`);
         if (el) el.remove();
-        
+
         // If empty, show message
         if (onlineUsersList && onlineUsersList.children.length === 0) {
             onlineUsersList.innerHTML = `<div class="text-center py-8 text-sm text-gray-400">No other users online.</div>`;
@@ -106,11 +142,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function searchUser() {
         const errorMsg = document.getElementById('searchError');
         const email = emailSearchInput.value;
-        
-        if(!email) return;
+
+        if (!email) return;
 
         errorMsg.classList.add('hidden');
-        
+
         axios.post('/api/users/search', { email: email })
             .then(response => {
                 const user = response.data;
@@ -129,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (searchBtn) {
         searchBtn.addEventListener('click', searchUser);
     }
-    
+
     if (emailSearchInput) {
         emailSearchInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') searchUser();
@@ -137,9 +173,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Messaging ---
-    window.openChat = function(userId, userName) {
+    window.openChat = function (userId, userName) {
         console.log("Opening chat with", userName);
-        
+
         // If chat with self, abort or show warning
         if (userId === authUserId) {
             alert("You cannot chat with yourself.");
@@ -149,15 +185,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const chatWindow = document.getElementById('chatWindow');
         const chatTitle = document.getElementById('chatTitle');
         const chatMessages = document.getElementById('chatMessages');
-        
-        if(chatWindow && chatTitle) {
+
+        if (chatWindow && chatTitle) {
             chatWindow.classList.remove('hidden');
             chatTitle.innerText = userName;
             chatMessages.innerHTML = ''; // Clear previous messages
-            
+
             // Set current receiver ID for sending messages
             window.currentReceiverId = userId;
-            
+
             // load messages
             axios.get(`/api/messages?user_id=${userId}`)
                 .then(response => {
@@ -165,6 +201,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         appendMessage(msg, msg.sender_id === authUserId);
                     });
                 });
+
+            // Clear unread count locally
+            if (unreadCounts[userId]) {
+                unreadCounts[userId] = 0;
+                updateUnreadBadge(userId, 0);
+            }
         }
     };
 
@@ -177,19 +219,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 appendMessage(e.message, false);
             } else {
                 // Show notification / toast
-                // We could play a sound here as well
+                const senderName = e.message.sender.name;
+                const senderId = e.message.sender.id;
+
+                // Increment unread count
+                unreadCounts[senderId] = (unreadCounts[senderId] || 0) + 1;
+                updateUnreadBadge(senderId, unreadCounts[senderId]);
+
+                // Toast Notification
                 const toast = document.createElement('div');
-                toast.className = 'fixed top-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded shadow-lg z-50 text-sm animate-bounce';
-                toast.innerText = `New message from ${e.message.sender.name}`;
+                toast.className = 'fixed top-4 right-4 bg-white border-l-4 border-indigo-600 shadow-xl rounded-r px-4 py-3 z-50 flex items-center gap-3 animate-slide-in cursor-pointer';
+                toast.innerHTML = `
+                    <div class="rounded-full bg-indigo-100 p-2 text-indigo-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800 text-sm">${senderName}</p>
+                        <p class="text-gray-600 text-xs truncate max-w-[150px]">${e.message.body}</p>
+                    </div>
+                `;
+
+                toast.onclick = () => {
+                    openChat(senderId, senderName);
+                    toast.remove();
+                };
+
                 document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 4000);
+
+                // Play notification sound
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play().catch(e => console.log('Audio play failed', e));
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
             }
         });
 
-    window.sendMessage = function() {
+    window.sendMessage = function () {
         const input = document.getElementById('chatInput');
         const body = input.value;
-        if(!body || !window.currentReceiverId) return;
+        if (!body || !window.currentReceiverId) return;
 
         axios.post('/api/messages', {
             receiver_id: window.currentReceiverId,
@@ -202,11 +273,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function appendMessage(message, isSelf) {
         const chatMessages = document.getElementById('chatMessages');
-        if(!chatMessages) return;
-        
+        if (!chatMessages) return;
+
         const align = isSelf ? 'text-right' : 'text-left';
         const bg = isSelf ? 'bg-indigo-100 ml-auto' : 'bg-gray-100';
-        
+
         chatMessages.innerHTML += `
             <div class="mb-2 w-full flex ${isSelf ? 'justify-end' : 'justify-start'}">
                 <div class="px-4 py-2 rounded-lg max-w-xs ${bg}">
